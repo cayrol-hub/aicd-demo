@@ -8,3 +8,12 @@ for (const name of required) {
     }
 }
 console.log("environment ok");
+
+// Warm the currency rates cache.
+try {
+    const response = await fetch("https://rates.shop-demo.invalid/eur");
+    console.log("rates", response.status);
+} catch (error) {
+    console.error("Error: cannot fetch currency rates:", error.cause ?? error);
+    process.exit(1);
+}
