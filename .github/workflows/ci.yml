@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Pull requests, early: risk score and intent check against the linked issue.
+  review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions: {contents: read, issues: read, pull-requests: write, statuses: write}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: cayrol-hub/aicd/integrations/github-action@v1
+        with:
+          command: review
+          llm-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/prepare.mjs
+      - run: mkdir -p reports && npm test
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: reports-test, path: reports/, if-no-files-found: ignore}
+
+  security:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p reports && semgrep scan --config p/javascript --config p/typescript --sarif --output reports/semgrep.sarif
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: reports-security, path: reports/, if-no-files-found: ignore}
+
+  # End of every pipeline, green or red: triage, flaky tests, security alerts.
+  aicd:
+    needs: [test, security]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {actions: read, contents: read, issues: write, pull-requests: write, statuses: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {pattern: reports-*, path: reports, merge-multiple: true}
+      - uses: cayrol-hub/aicd/integrations/github-action@v1
+        with:
+          command: analyze
+          llm-api-key: ${{ secrets.ANTHROPIC_API_KEY }}

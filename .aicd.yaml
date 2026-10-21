@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cayrol-hub/aicd/main/schema/aicd.schema.json
+# aicd configuration of the demo. Reference: https://github.com/cayrol-hub/aicd/blob/main/docs/reference/configuration.md
+
+llm:
+  provider: anthropic # without the ANTHROPIC_API_KEY secret, aicd runs on rules only
+  budget_per_run_usd: 0.3
+
+agents:
+  triage: {autonomy: advise} # diagnoses and comments; retries are shown as suggestions
+  flaky: {autonomy: act, min_runs: 3, quarantine_after: 1} # quarantines a test that flips on the same commit
+  security_triage: {autonomy: act} # comments and sets the aicd/security status
+  intent_check: {autonomy: advise}
+  risk_score: {autonomy: act, comment_on_low: true, fail_on_high: true} # label, status and comment
+
+integrations:
+  trackers:
+    - type: github # reads the issue a pull request closes (acceptance criteria)
+
+inputs:
+  junit: ["reports/**/*.xml"]
+  sarif: ["reports/**/*.sarif"]
+
+comment:
+  language: en
