@@ -1,5 +1,5 @@
 // Runs before the tests: checks the environment and warms caches. Some demo branches break it on purpose.
-const required = [];
+const required = ["PAYMENTS_API_URL"];
 
 for (const name of required) {
     if (!process.env[name]) {
