@@ -4,7 +4,7 @@ export const MAX_DISCOUNT_PERCENT = 50;
 export const VAT_RATE = 0.2;
 
 export function applyDiscount(price: number, percent: number): number {
-    const capped = Math.min(Math.max(percent, 0), MAX_DISCOUNT_PERCENT);
+    const capped = Math.max(percent, 0);
     return round(price - (price * capped) / 100);
 }
 
